@@ -133,7 +133,8 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
 
         replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
 
-        if max_replication_key_value is None or rec[replication_key] > max_replication_key_value:
+        end_date = sf.end_date if sf.end_date is not None else start_time
+        if max_replication_key_value is None or (max_replication_key_value < rec[replication_key] <= end_date):
             max_replication_key_value = rec[replication_key]
 
         if sf.pk_chunking:
