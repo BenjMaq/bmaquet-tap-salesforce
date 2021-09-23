@@ -9,6 +9,7 @@
 This is a forked version of [tap-salesforce (meltano.1.4.27)](https://gitlab.com/meltano/tap-salesforce) that maintained by [bmaquet](https://github.com/BenjMaq).
 
 Main differences from the Meltano version:
+
 - Support a new `OAuthPasswordCredentials` authentication which uses a combination of `username`, `password`, `client_id`, and `client_secret`.
 - Support Salesforce BULK API V2
 
