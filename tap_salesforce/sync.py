@@ -133,7 +133,8 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
 
         replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
 
-        if max_replication_key_value is None or rec[replication_key] > max_replication_key_value:
+        end_date = sf.end_date if sf.end_date is not None else start_time
+        if max_replication_key_value is None or (max_replication_key_value < rec[replication_key] <= end_date):
             max_replication_key_value = rec[replication_key]
 
         if sf.pk_chunking:
@@ -148,22 +149,14 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
 
                 if counter.value % state_msg_threshold == 0:
                     singer.write_state(state)
-        # Before writing a bookmark, make sure Salesforce has not given us a
-        # record with one outside our range
-        elif replication_key_value and replication_key_value <= start_time:
-            # For BULK_V2, we keep the state of the record with the latest replication_key value
-            if sf.api_type == 'BULK_V2':
-                state = singer.write_bookmark(
-                    state,
-                    catalog_entry['tap_stream_id'],
-                    replication_key,
-                    max_replication_key_value)
-            else:
-                state = singer.write_bookmark(
-                    state,
-                    catalog_entry['tap_stream_id'],
-                    replication_key,
-                    rec[replication_key])
+        # Before writing a bookmark, make sure Salesforce has not given us a record with one outside our range
+        # Also, do not write a bookmark for BULK_V2 API. We only write at the end of the stream
+        elif sf.api_type != 'BULK_V2' and replication_key_value and replication_key_value <= start_time:
+            state = singer.write_bookmark(
+                state,
+                catalog_entry['tap_stream_id'],
+                replication_key,
+                rec[replication_key])
 
             if counter.value % state_msg_threshold == 0:
                 singer.write_state(state)
@@ -183,6 +176,15 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
             catalog_entry['tap_stream_id'],
             replication_key,
             singer_utils.strftime(chunked_bookmark))
+
+    # For BULK_V2, we keep the state of the record with the latest replication_key value.
+    # We only write a bookmark at the end of the stream to prevent false-resumes
+    if sf.api_type == 'BULK_V2':
+        state = singer.write_bookmark(
+            state,
+            catalog_entry['tap_stream_id'],
+            replication_key,
+            max_replication_key_value)
 
 def fix_record_anytype(rec, schema):
     """Modifies a record when the schema has no 'type' element due to a SF type of 'anyType.'
