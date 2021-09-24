@@ -123,17 +123,24 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
             rec = transformer.transform(rec, schema)
         rec = fix_record_anytype(rec, schema)
-        singer.write_message(
-            singer.RecordMessage(
-                stream=(
-                    stream_alias or stream),
+        end_date = sf.end_date if sf.end_date is not None else start_time
+
+        # If an existing record in the source (SFDC) (created prior to the workflow start time) gets updated while
+        # the session is still running, the `replication_key` date for the record, when written to the target
+        # will be greater than `end_date`.
+        # See issue described here: https://network.informatica.com/thread/10348
+        if rec[replication_key] <= end_date:
+            singer.write_message(singer.RecordMessage(
+                stream=(stream_alias or stream),
                 record=rec,
                 version=stream_version,
-                time_extracted=start_time))
+                time_extracted=start_time)
+            )
+        else:
+            continue
 
         replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
 
-        end_date = sf.end_date if sf.end_date is not None else start_time
         if max_replication_key_value is None or (max_replication_key_value < rec[replication_key] <= end_date):
             max_replication_key_value = rec[replication_key]
 
