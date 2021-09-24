@@ -125,8 +125,9 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
         rec = fix_record_anytype(rec, schema)
         end_date = sf.end_date if sf.end_date is not None else start_time
 
-        # When a record is updated on SFDC side during the load, the filter condition based on replication_key is broken
-        # We need to only write records when the replication_key <= end_date
+        # If an existing record in the source (SFDC) (created prior to the workflow start time) gets updated while
+        # the session is still running, the `replication_key` date for the record, when written to the target
+        # will be greater than `end_date`.
         # See issue described here: https://network.informatica.com/thread/10348
         if rec[replication_key] <= end_date:
             singer.write_message(singer.RecordMessage(
