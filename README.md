@@ -8,13 +8,10 @@
 
 This is a forked version of [tap-salesforce (v1.4.24)](https://github.com/singer-io/tap-salesforce) that maintained by the Meltano team.
 
-Main differences from the original version:
+Main differences from the Meltano version:
 
-- Support for `username/password/security_token` authentication
-- Support for concurrent execution (8 threads by default) when accessing different API endpoints to speed up the extraction process
-- Support for a new `OAuthPasswordCredentials` authentication which uses a combination of `username`, `password`, `client_id`, and `client_secret`.
-- Support for Salesforce BULK API V2
-- Support for a new `end_date` config parameter
+- Support a new `OAuthPasswordCredentials` authentication which uses a combination of `username`, `password`, `client_id`, and `client_secret`.
+- Support Salesforce BULK API V2
 
 # Quickstart
 
