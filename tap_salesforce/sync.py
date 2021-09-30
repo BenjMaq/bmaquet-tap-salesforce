@@ -118,7 +118,7 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
     LOGGER.info('Syncing Salesforce data for stream %s', stream)
 
     max_replication_key_value = None
-    end_date = None
+    end_date = sf.end_date if sf.end_date is not None else start_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     for rec in sf.query(catalog_entry, state):
         counter.increment()
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
@@ -132,7 +132,6 @@ def sync_records(sf, catalog_entry, state, counter, state_msg_threshold):
                 time_extracted=start_time)
             )
         else:
-            end_date = sf.end_date if sf.end_date is not None else start_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             # If an existing record in the source (SFDC) (created prior to the workflow start time) gets updated while
             # the session is still running, the `replication_key` date for the record, when written to the target
             # will be greater than `end_date`.
